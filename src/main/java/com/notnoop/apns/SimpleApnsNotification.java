@@ -1,45 +1,61 @@
 /*
- * Copyright 2009, Mahmood Ali.
- * All rights reserved.
+ *  Copyright 2009, Mahmood Ali.
+ *  All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are
+ *  met:
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Mahmood Ali. nor the names of its
- *     contributors may be used to endorse or promote products derived from
- *     this software without specific prior written permission.
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above
+ *      copyright notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *    * Neither the name of Mahmood Ali. nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package com.notnoop.apns;
 
 import java.util.Arrays;
 
 import com.notnoop.apns.internal.Utilities;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.io.UnsupportedEncodingException;
 
 /**
- * Represents an APNS notification to be sent to Apple service.
+ * Represents an APNS notification to be sent to Apple service. This is for legacy use only
+ * and should not be used in new development.
+ * https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/LegacyFormat.html
+ *
+ * This SimpleApnsNotification also only has limited error handling (by the APNS closing the connection
+ * when a bad message was received) This prevents us from location the malformed notification.
+ *
+ * As push messages sent after a malformed notification are discarded by APNS messages will get lost
+ * and not be delivered with the SimpleApnsNotification.
+ *
+ * @deprecated use EnhancedApnsNotification instead.
  */
+@SuppressWarnings("deprecation")
+@Deprecated
 public class SimpleApnsNotification implements ApnsNotification {
-
+	
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleApnsNotification.class);
     private final static byte COMMAND = 0;
     private final byte[] deviceToken;
     private final byte[] payload;
@@ -84,7 +100,7 @@ public class SimpleApnsNotification implements ApnsNotification {
         return Utilities.copyOf(payload);
     }
 
-    private byte[] marshall = null;
+    private byte[] marshall;
     /**
      * Returns the binary representation of the message as expected by the
      * APNS server.
@@ -95,7 +111,7 @@ public class SimpleApnsNotification implements ApnsNotification {
     public byte[] marshall() {
         if (marshall == null)
             marshall = Utilities.marshall(COMMAND, deviceToken, payload);
-        return marshall;
+        return marshall.clone();
     }
 
     /**
@@ -107,7 +123,8 @@ public class SimpleApnsNotification implements ApnsNotification {
      */
     public int length() {
         int length = 1 + 2 + deviceToken.length + 2 + payload.length;
-        assert marshall().length == length;
+        final int marshalledLength = marshall().length;
+        assert marshalledLength == length;
         return length;
     }
 
@@ -136,11 +153,17 @@ public class SimpleApnsNotification implements ApnsNotification {
     }
     
     @Override
+    @SuppressFBWarnings("DE_MIGHT_IGNORE")
     public String toString() {
-        String payloadString = "???";
+        String payloadString;
         try {
             payloadString = new String(payload, "UTF-8");
-        } catch (Exception _) {}        
+        } catch (UnsupportedEncodingException ex) {
+            LOGGER.debug("UTF-8 charset not found on the JRE", ex);
+            payloadString = "???";
+        }
         return "Message(Token="+Utilities.encodeHex(deviceToken)+"; Payload="+payloadString+")";
     }
+
+
 }

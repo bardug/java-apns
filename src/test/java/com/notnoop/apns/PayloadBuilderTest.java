@@ -1,17 +1,47 @@
+/*
+ *  Copyright 2009, Mahmood Ali.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are
+ *  met:
+ *
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above
+ *      copyright notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *    * Neither the name of Mahmood Ali. nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package com.notnoop.apns;
 
-import static org.junit.Assert.*;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.core.StringContains.containsString;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Random;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
-import com.notnoop.apns.PayloadBuilder;
 import com.notnoop.apns.internal.Utilities;
+import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsNot.*;
+import static org.hamcrest.core.StringContains.*;
+import static org.junit.Assert.*;
 
+@SuppressWarnings("deprecation")
 public class PayloadBuilderTest {
 
     @Test
@@ -45,6 +75,18 @@ public class PayloadBuilderTest {
     }
 
     @Test
+    public void testSafariAps() {
+        final PayloadBuilder builder = new PayloadBuilder();
+        builder.alertBody("test");
+        builder.alertTitle("Test Title");
+        builder.actionKey("View");
+        builder.urlArgs("arg1", "arg2", "arg3");
+
+        final String expected = "{\"aps\":{\"alert\":{\"body\":\"test\",\"title\":\"Test Title\",\"action-loc-key\":\"View\"},\"url-args\":[\"arg1\",\"arg2\",\"arg3\"]}}";
+        assertEqualsJson(expected, builder.build());
+    }
+
+    @Test
     public void testTwoApsMultipleBuilds() {
         final PayloadBuilder builder = new PayloadBuilder();
         builder.alertBody("test");
@@ -66,10 +108,22 @@ public class PayloadBuilderTest {
     }
 
     @Test
+    public void localizedTitleKeyAndArguments() {
+        final PayloadBuilder builder = new PayloadBuilder()
+                .localizedTitleKey("GAME_PLAY_REQUEST_FORMAT")
+                .localizedTitleArguments("Jenna", "Frank");
+        builder.sound("chime");
+
+        final String expected = "{\"aps\":{\"sound\":\"chime\",\"alert\":{\"title-loc-key\":\"GAME_PLAY_REQUEST_FORMAT\",\"title-loc-args\":[\"Jenna\",\"Frank\"]}}}";
+        final String actual = builder.toString();
+        assertEqualsJson(expected, actual);
+    }
+
+    @Test
     public void localizedOneWithArray() {
         final PayloadBuilder builder = new PayloadBuilder()
         .localizedKey("GAME_PLAY_REQUEST_FORMAT")
-        .localizedArguments(new String[] { "Jenna", "Frank" });
+        .localizedArguments("Jenna", "Frank");
         builder.sound("chime");
 
         final String expected = "{\"aps\":{\"sound\":\"chime\",\"alert\":{\"loc-key\":\"GAME_PLAY_REQUEST_FORMAT\",\"loc-args\":[\"Jenna\",\"Frank\"]}}}";
@@ -95,7 +149,7 @@ public class PayloadBuilderTest {
             new PayloadBuilder()
         .sound("chime")
         .localizedKey("GAME_PLAY_REQUEST_FORMAT")
-        .localizedArguments(new String[] { "Jenna", "Frank" });
+        .localizedArguments("Jenna", "Frank");
 
         final String expected = "{\"aps\":{\"sound\":\"chime\",\"alert\":{\"loc-key\":\"GAME_PLAY_REQUEST_FORMAT\",\"loc-args\":[\"Jenna\",\"Frank\"]}}}";
         final String actual = builder.toString();
@@ -214,7 +268,7 @@ public class PayloadBuilderTest {
         builder.customField("achme", "foo");
         builder.sound("chime");
         builder.localizedKey("GAME_PLAY_REQUEST_FORMAT")
-        .localizedArguments(new String[] { "Jenna", "Frank"});
+        .localizedArguments("Jenna", "Frank");
 
         final String expected = "{\"achme\":\"foo\",\"aps\":{\"sound\":\"chime\",\"alert\":{\"loc-key\":\"GAME_PLAY_REQUEST_FORMAT\",\"loc-args\":[\"Jenna\",\"Frank\"]}}}";
         final String actual = builder.toString();
@@ -227,7 +281,7 @@ public class PayloadBuilderTest {
         builder.customField("achme", "foo");
         builder.sound("chime");
         builder.localizedKey("GAME_PLAY_REQUEST_FORMAT")
-        .localizedArguments(new String[] { "Jenna", "Frank"});
+        .localizedArguments("Jenna", "Frank");
 
         final String expected = "{\"achme\":\"foo\",\"aps\":{\"sound\":\"chime\",\"alert\":{\"loc-key\":\"GAME_PLAY_REQUEST_FORMAT\",\"loc-args\":[\"Jenna\",\"Frank\"]}}}";
         assertEqualsJson(expected, builder.build());
@@ -285,8 +339,7 @@ public class PayloadBuilderTest {
         for (int i = 0; i < l; ++i) {
             sb.append('c');
         }
-        final String alert = sb.toString();
-        return alert;
+        return sb.toString();
     }
 
     private PayloadBuilder payloadOf(final int l) {
@@ -297,7 +350,7 @@ public class PayloadBuilderTest {
     public void detectingLongMessages() {
         final String basic = "{\"aps\":{\"alert\":\"\"}}";
         final int wrapperOverhead = basic.length();
-        final int cutoffForAlert = 256 - wrapperOverhead;
+        final int cutoffForAlert = 2048 - wrapperOverhead;
 
         final PayloadBuilder wayShort = payloadOf(1);
         assertFalse(wayShort.isTooLong());
@@ -310,7 +363,7 @@ public class PayloadBuilderTest {
         final PayloadBuilder border = payloadOf(cutoffForAlert);
         assertFalse(border.isTooLong());
         assertTrue(border.length() == wrapperOverhead + cutoffForAlert);
-        assertTrue(border.length() == 256);
+        assertTrue(border.length() == 2048);
 
         final PayloadBuilder abitLong = payloadOf(cutoffForAlert + 1);
         assertTrue(abitLong.isTooLong());
@@ -325,8 +378,8 @@ public class PayloadBuilderTest {
     public void shrinkLongMessages() {
         final String basic = "{\"aps\":{\"alert\":\"\"}}";
         final int wrapperOverhead = basic.length();
-        final int cutoffForAlert = 256 - wrapperOverhead;
-        final int max_length = 256;
+        final int cutoffForAlert = 2048 - wrapperOverhead;
+        final int max_length = 2048;
 
         final PayloadBuilder wayShort = payloadOf(1);
         wayShort.shrinkBody();  // NOOP
@@ -357,8 +410,8 @@ public class PayloadBuilderTest {
     public void shrinkLongMessagesWithOtherthigns() {
         final String basic = "{\"aps\":{\"alert\":\"\"}}";
         final int wrapperOverhead = basic.length();
-        final int cutoffForAlert = 256 - wrapperOverhead;
-        final int max_length = 256;
+        final int cutoffForAlert = 2048 - wrapperOverhead;
+        final int max_length = 2048;
 
         final PayloadBuilder wayShort = payloadOf(1).sound("default");
         assertFalse(wayShort.isTooLong());
@@ -389,7 +442,7 @@ public class PayloadBuilderTest {
     public void removeAlertIfSooLong() {
         final PayloadBuilder tooLong =
             APNS.newPayload()
-            .customField("test", strOfLen(256))
+            .customField("test", strOfLen(2048))
             .alertBody("what");
         tooLong.shrinkBody();
         final String payload = tooLong.build();
@@ -481,5 +534,40 @@ public class PayloadBuilderTest {
         final String s1 = builder.alertBody(str).toString();
 
         assertThat(s1, containsString(str));
+    }
+    
+    @Test
+    public void silentPingMessage() {
+        final PayloadBuilder builder = new PayloadBuilder();
+        builder.instantDeliveryOrSilentNotification();
+
+        final String expected = "{\"aps\":{\"content-available\":1}}";
+        final String actual = builder.toString();
+        assertEqualsJson(expected, actual);
+        
+    }
+
+    @Test
+    public void silentPingMessageWithCustomKey() {
+        final PayloadBuilder builder = new PayloadBuilder();
+        
+        builder.instantDeliveryOrSilentNotification();
+        builder.customField("ache1", "what");
+
+        final String expected = "{\"aps\":{\"content-available\":1},\"ache1\":\"what\"}";
+        final String actual = builder.toString();
+        assertEqualsJson(expected, actual);
+        
+    }
+
+    @Test
+    public void instantMessageWithAlert() {
+        final PayloadBuilder builder = new PayloadBuilder();
+        builder.alertBody("test");
+        builder.instantDeliveryOrSilentNotification();
+
+        final String expected = "{\"aps\":{\"alert\":\"test\",\"content-available\":1}}";
+        final String actual = builder.toString();
+        assertEqualsJson(expected, actual);
     }
 }
