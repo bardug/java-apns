@@ -1,32 +1,32 @@
 /*
- * Copyright 2009, Mahmood Ali.
- * All rights reserved.
+ *  Copyright 2009, Mahmood Ali.
+ *  All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are
+ *  met:
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following disclaimer
- *     in the documentation and/or other materials provided with the
- *     distribution.
- *   * Neither the name of Mahmood Ali. nor the names of its
- *     contributors may be used to endorse or promote products derived from
- *     this software without specific prior written permission.
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above
+ *      copyright notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *    * Neither the name of Mahmood Ali. nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package com.notnoop.apns.internal;
 
@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.Date;
 import java.util.HashMap;
@@ -46,12 +47,11 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.notnoop.exceptions.InvalidSSLConfig;
 import com.notnoop.exceptions.NetworkIOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Utilities {
     private static Logger logger = LoggerFactory.getLogger(Utilities.class);
@@ -68,47 +68,9 @@ public final class Utilities {
     public static final String PRODUCTION_FEEDBACK_HOST = "feedback.push.apple.com";
     public static final int PRODUCTION_FEEDBACK_PORT = 2196;
 
-    public static final int MAX_PAYLOAD_LENGTH = 256;
+    public static final int MAX_PAYLOAD_LENGTH = 2048;
 
     private Utilities() { throw new AssertionError("Uninstantiable class"); }
-
-    public static SSLSocketFactory newSSLSocketFactory(final InputStream cert, final String password,
-         final String ksType, final String ksAlgorithm) throws InvalidSSLConfig {
-        final SSLContext context = newSSLContext(cert, password, ksType, ksAlgorithm);
-        return context.getSocketFactory();
-    }
-
-    public static SSLContext newSSLContext(final InputStream cert, final String password,
-            final String ksType, final String ksAlgorithm) throws InvalidSSLConfig {
-           try {
-               final KeyStore ks = KeyStore.getInstance(ksType);
-               ks.load(cert, password.toCharArray());
-               return newSSLContext(ks, password, ksAlgorithm);
-           } catch (final Exception e) {
-               throw new InvalidSSLConfig(e);
-           }
-       }
-    
-    public static SSLContext newSSLContext(final KeyStore ks, final String password,
-            final String ksAlgorithm) throws InvalidSSLConfig {
-           try {
-               // Get a KeyManager and initialize it
-               final KeyManagerFactory kmf = KeyManagerFactory.getInstance(ksAlgorithm);
-               kmf.init(ks, password.toCharArray());
-
-               // Get a TrustManagerFactory with the DEFAULT KEYSTORE, so we have all
-               // the certificates in cacerts trusted
-               final TrustManagerFactory tmf = TrustManagerFactory.getInstance(ksAlgorithm);
-               tmf.init((KeyStore)null);
-
-               // Get the SSLContext to help create SSLSocketFactory
-               final SSLContext sslc = SSLContext.getInstance("TLS");
-               sslc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-               return sslc;
-           } catch (final Exception e) {
-               throw new InvalidSSLConfig(e);
-           }
-       }
 
     private static final Pattern pattern = Pattern.compile("[ -]");
     public static byte[] decodeHex(final String deviceToken) {
@@ -116,12 +78,12 @@ public final class Utilities {
 
         final byte[] bts = new byte[hex.length() / 2];
         for (int i = 0; i < bts.length; i++) {
-            bts[i] = (byte) (charval(hex.charAt(2*i)) * 16 + charval(hex.charAt(2*i + 1)));
+            bts[i] = (byte) (charVal(hex.charAt(2 * i)) * 16 + charVal(hex.charAt(2 * i + 1)));
         }
         return bts;
     }
 
-    private static int charval(final char a) {
+    private static int charVal(final char a) {
         if ('0' <= a && a <= '9') {
             return (a - '0');
         } else if ('a' <= a && a <= 'f') {
@@ -230,6 +192,8 @@ public final class Utilities {
     }
 
     public static void close(final Closeable closeable) {
+        logger.debug("close {}", closeable);
+
         try {
             if (closeable != null) {
                 closeable.close();
@@ -240,6 +204,8 @@ public final class Utilities {
     }
 
     public static void close(final Socket closeable) {
+        logger.debug("close {}", closeable);
+
         try {
             if (closeable != null) {
                 closeable.close();
@@ -252,7 +218,9 @@ public final class Utilities {
     public static void sleep(final int delay) {
         try {
             Thread.sleep(delay);
-        } catch (final InterruptedException e1) {}
+        } catch (final InterruptedException e1) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public static byte[] copyOf(final byte[] bytes) {
@@ -284,6 +252,7 @@ public final class Utilities {
         }
     }
 
+    @SuppressWarnings({"PointlessArithmeticExpression", "PointlessBitwiseExpression"})
     public static int parseBytes(final int b1, final int b2, final int b3, final int b4) {
         return  ((b1 << 3 * 8) & 0xFF000000)
               | ((b2 << 2 * 8) & 0x00FF0000)

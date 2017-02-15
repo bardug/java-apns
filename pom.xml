@@ -3,7 +3,7 @@
 
     <groupId>olympus</groupId>
     <artifactId>ios-push-service-apns</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
     <name>Java Apple Push Notification Service Library</name>
 
@@ -37,10 +37,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.0</version>
+                <version>3.1</version>
                 <configuration>
-                    <source>1.5</source>
-                    <target>1.5</target>
+                    <source>1.6</source>
+                    <target>1.6</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -62,19 +62,19 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
-                <version>3.0-beta-3</version>
+                <version>3.3</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>2.4</version>
+                <version>2.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.4</version>
                 <configuration>
-                    <archive>
+                    <archive> 
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
@@ -86,11 +86,18 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
+            <plugin>  
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9</version>
+                <version>2.9.1</version>
+		<!--
+                <configuration>
+                    <additionalparam>-Xdoclint:none</additionalparam>
+                </configuration>
+		-->
                 <executions>
                     <execution>
+                        <id>generate-javadoc</id>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>jar</goal>
                             <goal>javadoc</goal>
@@ -113,47 +120,160 @@
             </plugin>
             <plugin>
                 <artifactId>maven-eclipse-plugin</artifactId>
-                <version>2.8</version>
+                <version>2.9</version>
                 <configuration>
                     <downloadSources>true</downloadSources>
                     <downloadJavadocs>true</downloadJavadocs>
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>com.springsource.bundlor</groupId>
-                <artifactId>com.springsource.bundlor.maven</artifactId>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>bundle-manifest</id>
+                        <phase>process-classes</phase>
+                        <goals>   
+                            <goal>manifest</goal>
+                        </goals>  
+                    </execution>
+                </executions>
+                <configuration>
+                    <instructions>
+                        <Bundle-Name>${project.groupId}</Bundle-Name>
+                        <Bundle-SymbolicName>${project.groupId}.${project.artifactId}</Bundle-SymbolicName>
+                        <Bundle-Version>${project.version}</Bundle-Version>
+                    </instructions>
+                </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>2.11</version>
+                <executions>
+                    <execution>
+                        <id>default-cli</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <strictCheck>true</strictCheck>
+                    <aggregate>true</aggregate>
+                    <header>LICENSE</header>
+                    <validHeaders>
+                        <validHeader>LICENSE.contributor</validHeader>
+                    </validHeaders>
+                    <mapping>
+                        <xml>XML_STYLE</xml>
+                        <java>SLASHSTAR_STYLE</java>
+                        <clj>SEMICOLON_STYLE</clj>
+                    </mapping>
+                    <useDefaultExcludes>true</useDefaultExcludes>
+                    <includes>
+                        <include>src/**/*.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+            <!--
+
+            We need to wait for findbugs 3.0.0 to test on JDK 8
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <failOnError>false</failOnError>
+
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <xmlOutput>true</xmlOutput>
+                    <findbugsXmlOutputDirectory>${project.build.directory}/findbugs</findbugsXmlOutputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>analyze-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>xml-maven-plugin</artifactId>
+                <version>1.0</version>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>transform</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <transformationSets>
+                        <transformationSet>
+                            <dir>${project.build.directory}/findbugs</dir>
+                            <outputDir>${project.build.directory}/findbugs</outputDir>
+                            <stylesheet>fancy-hist.xsl</stylesheet>    -->
+            <!--<stylesheet>default.xsl</stylesheet>-->
+            <!--<stylesheet>plain.xsl</stylesheet>-->
+            <!--<stylesheet>fancy.xsl</stylesheet>-->
+            <!--<stylesheet>summary.xsl</stylesheet>--><!--
+                            <fileMappers>
+                                <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                                    <targetExtension>.html</targetExtension>
+                                </fileMapper>
+                            </fileMappers>
+                        </transformationSet>
+                    </transformationSets>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.google.code.findbugs</groupId>
+                        <artifactId>findbugs</artifactId>
+                        <version>2.0.0</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            -->
         </plugins>
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>com.springsource.bundlor</groupId>
-                    <artifactId>com.springsource.bundlor.maven</artifactId>
-                    <version>1.0.0.RELEASE</version>
-                    <executions>
-                        <execution>
-                            <id>bundlor</id>
-                            <phase>compile</phase>
-                            <goals>
-                                <goal>bundlor</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <bundleSymbolicName>${project.groupId}.${project.artifactId}</bundleSymbolicName>
-                        <bundleVersion>${project.version}</bundleVersion>
-                        <failOnWarnings>true</failOnWarnings>
-                        <!-- Set the input path explicitly to ensure that it is never set to the target/generated-classes of the cobertua plugin.
-                            These classes contain references to cobertura classes and will mess up the generated manifest. If the default for inputPath is used, it will
-                            use target/generated-classes if other plugins run custom builds that include cobertura. If the path is set explicitly it will always be target/classes. -->
-                        <inputPath>${project.build.outputDirectory}</inputPath>
-                    </configuration>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>maven-bundle-plugin</artifactId>
+                    <version>2.5.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
     </build>
 
     <dependencies>
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+            <version>3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>uk.org.lidalia</groupId>
+            <artifactId>slf4j-test</artifactId>
+            <version>1.0.0-jdk6</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>annotations</artifactId>
+            <version>2.0.3</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -210,28 +330,20 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jxr-plugin</artifactId>
-                <version>2.3</version>
+                <version>2.4</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.7.1</version>
-            </plugin>
-            <plugin>
-                <groupId>com.atlassian.maven.plugins</groupId>
-                <artifactId>maven-clover2-plugin</artifactId>
-                <version>2.3.1</version>
+                <version>2.17</version>
             </plugin>
         </plugins>
     </reporting>
 
-    <pluginRepositories>
-        <pluginRepository>
-            <id>com.springsource.repository.bundles.release</id>
-            <name>SpringSource Enterprise Bundle Repository</name>
-            <url>http://repository.springsource.com/maven/bundles/release</url>
-        </pluginRepository>
-    </pluginRepositories>
+    <issueManagement>
+        <system>Github</system>
+        <url>http://github.com/java-apns/java-apns/issues</url>
+    </issueManagement>
 
     <developers>
         <developer>
