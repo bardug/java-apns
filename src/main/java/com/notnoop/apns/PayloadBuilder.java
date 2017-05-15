@@ -160,6 +160,18 @@ public final class PayloadBuilder {
     }
 
     /**
+     * With iOS10 it is possible to deliver the notification to the service extension.
+     *
+     * The Notification Service extention can present the notification after processing it.
+     *
+     * @return this
+     */
+    public PayloadBuilder deliveryToNotificationServiceExtention() {
+        aps.put("mutable-content", 1);
+        return this;
+    }
+
+    /**
      * Sets the category of the notification for iOS8 notification
      * actions.  See 13 minutes into "What's new in iOS Notifications"
      *
