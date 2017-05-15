@@ -548,6 +548,17 @@ public class PayloadBuilderTest {
     }
 
     @Test
+    public void mutableContentMessage() {
+        final PayloadBuilder builder = new PayloadBuilder();
+        builder.deliveryToNotificationServiceExtention();
+
+        final String expected = "{\"aps\":{\"mutable-content\":1}}";
+        final String actual = builder.toString();
+        assertEqualsJson(expected, actual);
+
+    }
+
+    @Test
     public void silentPingMessageWithCustomKey() {
         final PayloadBuilder builder = new PayloadBuilder();
         
